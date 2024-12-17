@@ -90,7 +90,7 @@ CRITIC_PROMPT = (
 class Pipe:
     class Valves(BaseModel):
         SEARX_HOST: str = Field(default="http://127.0.0.1:8888")
-        TASK_MODEL_ID: str = Field(default="granite3.1-instruct_4k:8b")
+        TASK_MODEL_ID: str = Field(default="granite3.1-dense:8b")
         OPENAI_API_URL: str = Field(default="http://localhost:11434/v1")
         OPENAI_API_KEY: str = Field(default="ollama")
         MODEL_TEMPERATURE: float = Field(default=0)
