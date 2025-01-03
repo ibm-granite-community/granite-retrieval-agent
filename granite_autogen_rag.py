@@ -4,8 +4,8 @@ requirements: autogen
 from datetime import date, datetime
 from autogen import coding, ConversableAgent
 from typing import Annotated, Any, Optional, Callable, Awaitable
-from open_webui.apps.retrieval import main
-from open_webui.apps.webui.models.knowledge import KnowledgeTable
+from open_webui.routers.retrieval import QueryCollectionsForm, query_collection_handler
+from open_webui.models.knowledge import KnowledgeTable
 from pydantic import BaseModel, Field
 import json
 import logging
@@ -284,12 +284,12 @@ class Pipe:
             for item in knowledge_item_list:
                 collection_list.append(item.id)
 
-            collection_form = main.QueryCollectionsForm(
+            collection_form = QueryCollectionsForm(
                 collection_names=collection_list,
                 query=search_instruction
             )
 
-            response = main.query_collection_handler(collection_form)
+            response = query_collection_handler(collection_form)
             messages = ""
             for entries in response['documents']:
                 for line in entries:
