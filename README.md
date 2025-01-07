@@ -10,7 +10,7 @@ The core agent code is wrapped inside of an [Open WebUI Function](https://docs.o
 
 ## Components
 
-1. Open WebUI
+1. Open WebUI (Version 0.5 and up only supported)
 2. Ollama
 3. Searxng
 4. The Python script of this repo - implementing Agentic Workflow, using the AutoGen framework (now known as AG2)
@@ -101,3 +101,5 @@ What companies are prominent adopters of the open source technologies my teams a
 ```
 Study my meeting notes to figure out the capabilities of the projects I’m involved in. Then, find me other open source projects that have similar feature sets.
 ```
+
+***Important Note***: *As of 12/25/24, Open WebUI updated their internal architecture with the 0.5 release. It has great performance improvements however, since then, we've been experiencing some issues where chat results don't show up in the browser until the browser window is refreshed.*
