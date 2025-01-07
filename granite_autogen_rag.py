@@ -1,11 +1,11 @@
 """
 requirements: autogen
 """
-from datetime import date, datetime
+from datetime import date
 from autogen import coding, ConversableAgent
 from typing import Annotated, Any, Optional, Callable, Awaitable
-from open_webui.apps.retrieval import main
-from open_webui.apps.webui.models.knowledge import KnowledgeTable
+from open_webui.routers import retrieval
+from open_webui.models.knowledge import KnowledgeTable
 from pydantic import BaseModel, Field
 import json
 import logging
@@ -122,7 +122,6 @@ class Pipe:
                         "data": {"content": message + "\n"},
                     }
         try:
-            start_time = datetime.now()
             await self.event_emitter(event_data)
         except Exception as e:
             logging.error(f"Error emitting event: {e}")
@@ -161,7 +160,8 @@ class Pipe:
     async def pipe(
         self,
         body,
-        __user__: Optional[dict] = None,
+        __user__: Optional[dict],
+        __request__: Request,
         __event_emitter__: Callable[[dict], Awaitable[None]] = None,
     ) -> str:
 
@@ -173,6 +173,8 @@ class Pipe:
         model_temp = self.valves.MODEL_TEMPERATURE
         max_plan_steps = self.valves.MAX_PLAN_STEPS
         self.event_emitter = __event_emitter__
+        self.owui_request = __request__
+        self.user = __user__
 
         ##################
         # AutoGen Config
@@ -284,12 +286,12 @@ class Pipe:
             for item in knowledge_item_list:
                 collection_list.append(item.id)
 
-            collection_form = main.QueryCollectionsForm(
+            collection_form = retrieval.QueryCollectionsForm(
                 collection_names=collection_list,
                 query=search_instruction
             )
 
-            response = main.query_collection_handler(collection_form)
+            response = retrieval.query_collection_handler(request=self.owui_request, form_data=collection_form, user=self.user)
             messages = ""
             for entries in response['documents']:
                 for line in entries:
@@ -372,4 +374,4 @@ class Pipe:
         final_prompt = f"Answer the user's query: {body['messages'][-1]}. Using the following contextual informaiton only: {answer_output}"
         final_output = user_proxy.initiate_chat(message=final_prompt, max_turns=1, recipient=generic_assistant).chat_history[-1]["content"]
 
-        return(final_output)
+        return final_output
