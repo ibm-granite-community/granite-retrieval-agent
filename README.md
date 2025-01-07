@@ -10,7 +10,7 @@ The core agent code is wrapped inside of an [Open WebUI Function](https://docs.o
 
 ## Components
 
-1. Open WebUI (Version 0.5 and up only supported)
+1. Open WebUI (Version 0.5 supported - Use the [openwebui_0.4 branch](https://github.com/ibm-granite-community/granite-retrieval-agent/tree/openwebui_0.4) for version 0.4 support)
 2. Ollama
 3. Searxng
 4. The Python script of this repo - implementing Agentic Workflow, using the AutoGen framework (now known as AG2)
