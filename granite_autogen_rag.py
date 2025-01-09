@@ -1,5 +1,5 @@
 """
-requirements: autogen
+requirements:  autogen
 """
 from fastapi import Request
 from datetime import date, datetime
@@ -21,7 +21,10 @@ PLANNER_MESSAGE = (
     1. Search through a collection of documents provided by the user. These are the user's own documents and will likely not have latest news or other information you can find on the internet.
     2. Synthesize, summarize and classify the information received.
     3. Search the internet
-    Please output the step using a properly formatted python dictionary and list. Respond only with the plan json as described below and no additional text. Here are a few examples:
+    Please output the step using a properly formatted python dictionary and list. It must be formatted exactly as below:
+    ```{"plan": ["Step 1", "Step 2"]}```
+
+    Respond only with the plan json with no additional fields and no additional text. Here are a few examples:
     Example 1: 
     User query: Write a performance self-assessment for Joe, consisting of a high-level overview of achievements for the year, a listing of the business impacts for each of these achievements, a list of skills developed and ways he's collaborated with the team.
     Your response:
