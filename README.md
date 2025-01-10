@@ -13,7 +13,9 @@ The core agent code is wrapped inside of an [Open WebUI Function](https://docs.o
 1. Open WebUI (Version 0.5 supported - Use the [openwebui_0.4 branch](https://github.com/ibm-granite-community/granite-retrieval-agent/tree/openwebui_0.4) for version 0.4 support)
 2. Ollama
 3. Searxng
-4. The Python script of this repo - implementing Agentic Workflow, using the AutoGen framework (now known as AG2)
+4. The Python script of this repo - implementing an Agentic Workflow, using the AutoGen framework
+   
+   *Note: The script imports the PyPi package* `autogen` *which is sourced from the* [AG2 project](https://github.com/ag2ai/ag2)*, a community fork of* [Microsoft AutoGen](https://github.com/microsoft/autogen)*. Our agent uses functionality that is compatible with either AG2 or the ~0.2 release of AutoGen.*
 
 
 ## High Level Architecture
