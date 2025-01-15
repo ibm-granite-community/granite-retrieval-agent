@@ -10,6 +10,7 @@ from open_webui.models.knowledge import KnowledgeTable
 from pydantic import BaseModel, Field
 import json
 import logging
+import traceback
 from langchain_community.utilities import SearxSearchWrapper
 
 ####################
@@ -72,7 +73,7 @@ REFLECTION_ASSISTANT_PROMPT = (
 
     Instructions:
         1. If the very last step of the plan has already been executed, or the goal has already been achieved regardless of what step is next, then reply with the exact text: ##TERMINATE##
-        2. Look at the "Previous Step". If the last step was not successful and it is integral to solving the next step of the plan, do not move onto the next step. Inspect why the previous step was not successful, and modify the instruction to find another way to achieve the step's objective in a way that won't repeat the same error.
+        2. Look at the "Previous Step". If the previous step was not successful and it is integral to acheiving the goal, think of how it can be retried with better instructions. Inspect why the previous step was not successful, and modify the instruction to find another way to achieve the step's objective in a way that won't repeat the same error.
         3. If the last previous was successful, determine what the next step will be. Always prefer to execute the next sequential step in the plan unless the previous step was unsuccessful and you need to re-run the previous step using a modified instruction.
         4. When determining the next step, you may use the "Previous Step", "Previous Output", and "Steps Taken" to give you contextual information to decide what next step to take.
 
@@ -89,6 +90,40 @@ CRITIC_PROMPT = (
     For example, if the instruction was to list companies that use AI but the output does not contain a list of companies, or states that a list of companies is not available, then the output did not properly satisfy the instruction.
     If it does not satisfy the instruction, please think about what went wrong with the previous instruction and give me an explanation along with the text ##NO##. \n
     Previous step output: \n {last_output}"""
+)
+
+SEARCH_TERM_ASSISTANT_PROMPT = (
+    """You are an expert at creating precise, complete, and accurate web search queries. When given a description of what a user is looking for, you will generate a fully formed, optimized search query that can be used directly in a search engine to find the most relevant information.
+
+    Key Requirements:
+
+        Stick to the Description: Use only the information explicitly provided in the description. Do not add, assume, or invent details that are not stated.
+        Be Complete and Concise: The search query must contain all necessary keywords and phrases required to fulfill the description without being unnecessarily verbose.
+        Avoid Vague or Placeholder Terms: Do not include incomplete terms (e.g., no placeholder variables or references to unspecified concepts).
+        Use Proper Context and Refinement: Include context, if applicable (e.g., location, date, format). Utilize search modifiers like quotes, "site:", "filetype:", or Boolean operators (AND, OR, NOT) to refine the query when appropriate.
+        Avoid Hallucination: Do not make up or fabricate any details that are not explicitly stated in the description.
+
+    Example Input:
+    "Find the latest research papers about AI-driven medical imaging published in 2023."
+
+    Example Output:
+    "latest research papers on AI-driven medical imaging 2023"
+
+    Another Example Input:
+    "Find a website that lists the top restaurants in Paris with outdoor seating."
+
+    Example Output:
+    "top restaurants in Paris with outdoor seating"
+
+    Incorrect Example Input:
+    "Find the population of Atlantis."
+
+    Incorrect Example Output:
+    "population of Atlantis 2023" (This is incorrect because the existence or details about Atlantis are not explicitly stated in the input and must not be assumed.)
+
+    Your Turn:
+    Generate a complete, accurate, and optimized search query based on the description provided below:
+    """
 )
 
 class Pipe:
@@ -202,6 +237,14 @@ class Pipe:
             human_input_mode="NEVER"
         )
 
+        # Search Term Assistant - Used for finding relevant search terms for a user's query
+        web_search_assistant = ConversableAgent(
+            name="Web_Search_Term_Assistant",
+            system_message=SEARCH_TERM_ASSISTANT_PROMPT,
+            llm_config=llm_config,
+            human_input_mode="NEVER"
+        )
+
         # Provides the initial high level plan
         planner = ConversableAgent(
             name="Planner",
@@ -252,7 +295,9 @@ class Pipe:
         ##################
         @assistant.register_for_llm(name="web_search", description="Searches the web according to a given query")
         @user_proxy.register_for_execution(name="web_search")
-        def do_web_search(search_instruction: Annotated[str, "search instruction"]) -> str:
+        def do_web_search(search_instruction: Annotated[str,"Provide a detailed search instruction that incorporates specific features, goals, and contextual details related to the query. \
+                                                        Identify and include relevant aspects from any provided context, such as key topics, technologies, challenges, timelines, or use cases. \
+                                                        Construct the instruction to enable a targeted search by specifying important attributes, keywords, and relationships within the context."]) -> str:
             """This function is used for searching the web for information that can only be found on the internet, not in the users personal notes.
             """
             if not search_instruction:
@@ -262,15 +307,21 @@ class Pipe:
             today = date.today().strftime("%Y-%m-%d")
 
             chat_result = user_proxy.initiate_chat(
-                recipient=generic_assistant,
-                message="Given the user's message, suggest a search term to best fulfill their query. Make sure you are understanding the intent of their question. Today's date is " + today + ". " + search_instruction,
+                recipient=web_search_assistant,
+                message="Today's date is " + today + ". " + search_instruction,
                 max_turns=1,
             )
             summary = chat_result.chat_history[-1]['content']
 
             search = SearxSearchWrapper(searx_host=searx_host)
 
-            response = search.run(query=summary)
+            try:
+                response = search.run(query=summary)
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
+                return(f"Unable to execute search query due to the following exception: {e}")
+
             return response
 
         @assistant.register_for_llm(name="personal_knowledge_search", description="Searches personal documents according to a given query")
