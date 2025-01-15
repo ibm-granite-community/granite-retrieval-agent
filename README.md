@@ -1,4 +1,4 @@
-# Granite Retreival Agent
+# Granite Retrieval Agent
 
 The Granite Retrieval Agent is an implementation of Agentic RAG (Retrieval Augmented Generation) that can answer queries using a combination of both local document and web retrieval. It serves as a both personal productivity tool as well as an example of building an agent using task planning, adaptive step-by-step execution, and tool calling with an open source LLM such as Granite 3.1 at the helm.
 
