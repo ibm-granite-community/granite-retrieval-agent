@@ -73,7 +73,7 @@ REFLECTION_ASSISTANT_PROMPT = (
 
     Instructions:
         1. If the very last step of the plan has already been executed, or the goal has already been achieved regardless of what step is next, then reply with the exact text: ##TERMINATE##
-        2. Look at the "Previous Step". If the previous step was not successful and it is integral to acheiving the goal, think of how it can be retried with better instructions. Inspect why the previous step was not successful, and modify the instruction to find another way to achieve the step's objective in a way that won't repeat the same error.
+        2. Look at the "Previous Step". If the previous step was not successful and it is integral to achieving the goal, think of how it can be retried with better instructions. Inspect why the previous step was not successful, and modify the instruction to find another way to achieve the step's objective in a way that won't repeat the same error.
         3. If the last previous was successful, determine what the next step will be. Always prefer to execute the next sequential step in the plan unless the previous step was unsuccessful and you need to re-run the previous step using a modified instruction.
         4. When determining the next step, you may use the "Previous Step", "Previous Output", and "Steps Taken" to give you contextual information to decide what next step to take.
 
