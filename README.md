@@ -4,7 +4,7 @@ The Granite Retrieval Agent is an implementation of Agentic RAG (Retrieval Augme
 
 For ease of use, this agent is designed to be run locally on your laptop, given sufficient processing and memory - But can be run anywhere. (Initial tests were done using a MacBook Pro with an M3 Max Chip and 64GB of RAM).
 
-The core agent code is wrapped inside of an [Open WebUI Function](https://docs.openwebui.com/features/plugin/functions/) so that interaciton with the agent can be accomplished through an easy to use chat UI.
+The core agent code is wrapped inside of an [Open WebUI Function](https://docs.openwebui.com/features/plugin/functions/) so that interaction with the agent can be accomplished through an easy to use chat UI.
 
 ![The Agent in action](docs/images/GraniteAgentDemo.gif)
 
