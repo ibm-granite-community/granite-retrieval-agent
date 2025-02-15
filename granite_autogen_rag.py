@@ -1,5 +1,5 @@
 """
-requirements:  autogen
+requirements:  autogen<=0.7.0
 """
 from fastapi import Request
 from datetime import date, datetime
