@@ -5,8 +5,7 @@ We’ve added a new example alongside the Granite Retrieval Agent: an **Image Re
 
 ---
 
-## 📚 Table of Contents
-Here's the corrected table syntax:
+## 📚 Agents In This Repository
 
 
 | Feature                | Description                                           | Models Used                            | Code Link                                                                            | Tutorial Link                                                                                   |
