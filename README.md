@@ -1,107 +1,158 @@
-# Granite Retreival Agent
+# Granite Retrieval and Image Research Agents
 
-The Granite Retrieval Agent is an implementation of Agentic RAG (Retrieval Augmented Generation) that can answer queries using a combination of both local document and web retrieval. It serves as a both personal productivity tool as well as an example of building an agent using task planning, adaptive step-by-step execution, and tool calling with an open source LLM such as Granite 3.1 at the helm.
+## 🚀 New Feature as of 2/26/25
+We’ve added a new example alongside the Granite Retrieval Agent: an **Image Research Agent**. This agent uses the **Granite 3.2 language model** and **Granite 3.2 vision** to analyze images. It breaks down an image into components and dispatches parallel, asynchronous agents for detailed research. This implementation uses the **CrewAI framework** to demonstrate a different approach to agentic workflows.
 
-For ease of use, this agent is designed to be run locally on your laptop, given sufficient processing and memory - But can be run anywhere. (Initial tests were done using a MacBook Pro with an M3 Max Chip and 64GB of RAM).
+---
 
-The core agent code is wrapped inside of an [Open WebUI Function](https://docs.openwebui.com/features/plugin/functions/) so that interaciton with the agent can be accomplished through an easy to use chat UI.
+## 📚 Table of Contents
+Here's the corrected table syntax:
 
+| Feature                | Description                                           | Models Used                            | Code Link                                                                            | Tutorial Link                                                                                   |
+|------------------------|-------------------------------------------------------|----------------------------------------|---------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| Granite Retrieval Agent| General Agentic RAG for document and web retrieval using Autogen/AG2 | Granite 3.2 Language, Granite 3.2 Vision | [granite_autogen_rag.py](./granite_autogen_rag.py)                                     | [Build a multi-agent RAG system with Granite locally](https://developer.ibm.com/tutorials/awb-build-agentic-rag-system-granite/)        |
+| Image Research Agent   | Image-based multi-agent research using CrewAI with Granite 3.2 Vision | Granite 3.2 Language, Granite 3.2 Vision | [image_researcher_granite_crewai.py](./image_researcher_granite_crewai.py)             | [Build an AI research agent for image analysis with Granite 3.2 Reasoning and Vision models](https://developer.ibm.com
+
+
+
+
+---
+
+## 🔑 Key Highlights
+1. **Installation Instructions:** The setup process for Ollama and Open WebUI remains the same. Once configured, you can run either or both agents by copying the relevant Python file into Open WebUI.
+2. **Optional SearXNG Usage:** Instead of requiring SearXNG directly, the agents now use the Open WebUI search API, which can integrate with SearXNG or other search engines. Configuration instructions are available [here](https://docs.openwebui.com/category/-web-search).
+
+---
+
+# Granite Retrieval Agent
+
+The Granite Retrieval Agent repo is a collection of agents that implement Agentic RAG (Retrieval Augmented Generation) that answers queries using both local document and web retrieval. It demonstrates multi-agent task planning, adaptive execution, and tool calling with an open-source LLM such as Granite 3.2.
+
+**Designed for local execution**, it runs efficiently on a powerful laptop or any compatible environment. (Initial tests were done using a MacBook Pro with an M3 Max Chip and 64GB of RAM.)
+
+The core agent code integrates with [Open WebUI Functions](https://docs.openwebui.com/features/plugin/functions/) for easy interaction via a chat UI.
+
+### Image Researcher
+![alt-text](docs/images/image_explainer_example_1.png)
+
+### Retrieval Agent
 ![The Agent in action](docs/images/GraniteAgentDemo.gif)
 
 ## Components
-
-1. Open WebUI (Version 0.5 and up only supported)
-2. Ollama
-3. Searxng
-4. The Python script of this repo - implementing an Agentic Workflow, using the AutoGen framework
-   
-   *Note: The script imports the PyPi package* `autogen` *which is sourced from the* [AG2 project](https://github.com/ag2ai/ag2)*, a community fork of* [Microsoft AutoGen](https://github.com/microsoft/autogen)*. Our agent uses functionality that is compatible with either AG2 or the ~0.2 release of AutoGen.*
+1. **Open WebUI** (Version 0.5 and up only supported)
+2. **Ollama** for LLM inference
+3. **Optional:** SearXNG or other search engines via Open WebUI search API
+4. **Python script** implementing an Agentic Workflow, wrapped into Open WebUI Function
 
 
-## High Level Architecture
+---
+
+## High-Level Architecture
 ![alt text](docs/images/high_level_arch.png)
 
-## Agent Architecture
+## Image Researcher Agent Architecture
+![alt text](docs/images/image_explainer_agent.png)
+
+## AG2 Retrival Agent Architecture
 ![alt text](docs/images/agent_arch.png)
 
-## In-Depth Tour of the Agentic Workflow Architecture
-The following article describes the advantages of this multi-agent approach, as well as the architecture of the various agents and their interactions:
+---
 
-* [Build an agentic RAG system with Granite 3.1 on your laptop](https://developer.ibm.com/tutorials/awb-build-agentic-rag-system-granite/)
+# Getting Started
 
-## Getting Started
-### 1. Install Ollama
-See [Ollama's README](https://github.com/ollama/ollama) for full installation instructions. However it is as simple as:
+## 1. Install Ollama
+See [Ollama's README](https://github.com/ollama/ollama) for full installation instructions.
 
-On OSX:
-
-```
+On macOS:
+```bash
 brew install ollama
 ```
 
 On Linux:
-
-```
+```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
-To run:
-
-```
+To run Ollama and download the model:
+```bash
 ollama serve
-ollama pull granite3.1-dense:8b
+ollama pull granite3.2-dense:8b
 ```
-Now you are up and running with Ollama and Granite
 
-### 2. Install Open WebUI
-
-```
+## 2. Install Open WebUI
+```bash
 pip install open-webui
 open-webui serve
 ```
 
-### 3. Setup SearXNG for web search
-SearXNG is a metasearch engine that aggregates results from multiple search engines. The reason for it's inclusion in this architecture is that it requires no SaaS API key, as it can run directly on your laptop.
+## 3. Optional: SearXNG for Web Search
+SearXNG is now optional! The agents use the Open WebUI search API, compatible with any search engine backend, including SearXNG.
 
-Run the SearXNG docker image:
-```
+We use SearXNG becuase it requires no API keys, with the caveat that you must run the SearXNG container locally.
+
+Other alternatives are on the [Open WebUI documentation](https://docs.openwebui.com/category/-web-search).
+
+To set up SearXNG (if desired):
+```bash
 docker run -d --name searxng -p 8888:8080 -v ./searxng:/etc/searxng --restart always searxng/searxng:latest
 ```
-Note: SearXNG and Open WebUI both run on port 8080, so I've mapped SearXNG to my local machine port 8888.
-The reference to the `./searxng` folder in the docker run command is a reference to a location on your local machine where you will need to provide some configuration files for Searxng. We recommend you use the exact configuration files provided in the [Open WebUI documentation](https://docs.openwebui.com/features/web_search/).
+For configuring Open WebUI search API with SearXNG or other engines, follow [this guide](https://docs.openwebui.com/category/-web-search).
 
-This agent uses the SearXNG API directory - So you do not need to follow the steps in the Open WebUI documentation to setup SearXNG in the UI of Open WebUI. It is only necessary if you want to use SearXNG via the Open WebUI interface apart from this agent.
-
-### 4. Import the agent python into Open WebUI
-1. In your browser, go to `http://localhost:8080/` to access Open Web UI
-2. If it is your first time opening the Open WebUI interface, register a user and password. (This information is kept entirely local to your machine, it does not send you emails)
-3. After logging in, click on the icon on the lower left hand side where your user name is. This will bring a pop-up menu.
-4. Click on `Admin panel`.
-5. At the top of the menu, click on Functions
-6. At the top right, click the `+` sign to add a new function.
-7. Give the function a name and a description such as "Granite RAG Agent"
-8. Paste the contents of `granite_autogen_rag.py` into the text box provided, replacing any existing content.
-9. Click `Save` at the bottom of the screen.
-10. Back on the Functions page, make sure the agent is toggled to "Enabled", as the image below
-11. Click on the gear icon next to the enablement toggle to customize any settings such as the inference endpoint, the SearXNG endpoint or the model ID
+## 4. Import the Agent Python Script into Open WebUI
+1. Go to `http://localhost:8080/` and log into Open WebUI.
+2. Open the `Admin panel` from the lower-left menu.
+3. In the `Functions` tab, click the `+` to add a new function.
+4. Name it (e.g., "Granite RAG Agent" or "Image Research Agent").
+5. Paste the relevant Python file (`granite_autogen_rag.py` or `image_research_agent.py`).
+6. Save and toggle the agent to "Enabled."
+7. Customize settings (inference endpoint, search API endpoint, model ID) via the gear icon.
 
 ![alt text](docs/images/owui-functions.png)
 
-### 5. Load your documents into Open WebUI
-1. In Open WebUI, click on `Workspace` in the upper left hand corner
-2. Click `Knowledge` at the top of the screen
-3. Click the `+` sign to add a new collection.
-4. From here, you may add one or many collections and upload any text documents that you like. These documents will be queried when you instruct the model on a task that refers to extracting knowledge from your documents.
+## 5. Load Your Documents into Open WebUI
+1. In Open WebUI, go to `Workspace` > `Knowledge`.
+2. Click the `+` to add a new collection.
+3. Upload documents for the Retrieval Agent to query.
 
-## Usage
+## 6. Configure Web Search in Open WebUI
 
-Some example queries:
-```
-What companies are prominent adopters of the open source technologies my teams are working on?
+See the [Open WebUI documentation](https://docs.openwebui.com/category/-web-search) for detailed instructions for whichever search provider you choose.
+
+If you have already setup SearXNG, then simpy go to the Open WebUI GUI to configure SearXNG connectivity: https://docs.openwebui.com/tutorials/web-search/searxng#4-gui-configuration
+
+---
+
+# Usage
+
+## Image Explainer
+You can simply upload any image, and it will begin its research. You may prompt it with specific details that you would like it to focus on. 
+
+
+## AG2-based Retrieval Agent
+
+Example queries for the **Granite Retrieval Agent**:
+```text
+What companies are prominent adopters of the open-source technologies my team is working on?
 ```
 
-```
-Study my meeting notes to figure out the capabilities of the projects I’m involved in. Then, find me other open source projects that have similar feature sets.
+```text
+Study my meeting notes to figure out the capabilities of the projects I’m involved in. Then, find me other open-source projects with similar features.
 ```
 
-***Important Note***: *As of 12/25/24, Open WebUI updated their internal architecture with the 0.5 release. It has great performance improvements however, since then, we've been experiencing some issues where chat results don't show up in the browser until the browser window is refreshed.*
+Example queries for the **Image Research Agent**:
+```text
+Analyze this image and find related research articles about the devices shown.
+```
+
+```text
+Break down the image into components and provide a historical background for each object.
+```
+
+---
+
+# ⚠️ Important Note
+As of **12/25/24**, Open WebUI 0.5 introduced significant performance improvements. However, some users have reported occasional issues where chat results don't appear until refreshing the browser window.
+
+---
+
+With the addition of the Image Research Agent and the new flexible search API integration, the Granite Agent suite now supports both text and image-based research workflows. You can run one or both agents depending on your needs.
