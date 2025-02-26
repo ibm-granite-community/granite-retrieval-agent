@@ -43,6 +43,7 @@ Be sure to describe ALL prominent aspects of this image; do not miss any.
 ITEM_IDENTIFIER_PROMPT = """
     You are an item identifier.You will be given a description of an image, and your job is to identify all items and concepts that are part of the 
     image that will need to be researched in order to accomplish the goal.
+    You will limit the number of items to the {item_limit} most important items pertaining to the image that will accopmlish the goal.
     You will not perform the research yourself, but will work with a helper who will perform the research. The helper has the following capabilities:
     1. Genearl generative AI capabilities.
     2. Search the internet
@@ -64,7 +65,7 @@ ASSISTANT_PROMPT = """
 
 class Pipe:
     class Valves(BaseModel):
-        TASK_MODEL_ID: str = Field(default="ollama/granite3.2:8b")
+        TASK_MODEL_ID: str = Field(default="ollama/granite3.2:8b-instruct-q8_0")
         VISION_MODEL_ID: str = Field(
             default="ollama/granite-vision3.2:2b"
         )
@@ -72,7 +73,11 @@ class Pipe:
         OPENAI_API_KEY: str = Field(default="ollama")
         VISION_API_URL: str = Field(default="http://localhost:11434")
         MODEL_TEMPERATURE: float = Field(default=0)
-        MAX_PLAN_STEPS: int = Field(default=6)
+        MAX_RESEARCH_CATEGORIES: int = Field(default=4)
+        MAX_RESEARCH_ITERATIONS: int = Field(default=6)
+        INCLUDE_KNOWLEDGE_SEARCH: bool = Field(default=False)
+        RUN_PARALLEL_TASKS: bool = Field(default=False)
+
 
     def get_provider_models(self):
         return [
@@ -144,7 +149,10 @@ class Pipe:
         vision_model = self.valves.VISION_MODEL_ID
         vision_url = self.valves.VISION_API_URL
         model_temp = self.valves.MODEL_TEMPERATURE
-        max_plan_steps = self.valves.MAX_PLAN_STEPS
+        max_research_categories = self.valves.MAX_RESEARCH_CATEGORIES
+        max_research_iters = self.valves.MAX_RESEARCH_ITERATIONS
+        include_knoweldge_search = self.valves.INCLUDE_KNOWLEDGE_SEARCH
+        run_parallel_tasks = self.valves.RUN_PARALLEL_TASKS
         self.event_emitter = __event_emitter__
         self.owui_request = __request__
         self.user = __user__
@@ -255,14 +263,17 @@ class Pipe:
         )
 
         # Research Crew
+        available_tools = [do_web_search]
+        if include_knoweldge_search:
+            available_tools.append(do_knowledge_search)
         researcher = Agent(
             role="Researcher",
             goal="You will be given a step/instruction to accomplish. Fully answer the instruction/question using document search or web search tools as necessary.",
             backstory=ASSISTANT_PROMPT,
             llm=llm,
             verbose=True,
-            max_iter=max_plan_steps,
-            tools=[do_knowledge_search, do_web_search],
+            max_iter=max_research_iters,
+            tools=available_tools,
         )
         resarch_task = Task(
             description="Fulfill the instruction given. {item_name} {research_instructions}",  # Keep in mind the previously gathered data from previous steps: {previously_executed_steps}',
@@ -322,7 +333,7 @@ class Pipe:
         # For every image, whether in the latest instruction or the chat history, generate a description
         image_descriptions = []
         for i in range(len(image_info)):
-            await self.emit_event_safe(message="Analyzing image")
+            await self.emit_event_safe(message="Analyzing image...")
             image_query = DEAULT_IMAGE_VERBALIZER_PROMPT
             if latest_instruction:
                 image_query += f"\n\nUse the following instruction from the user to further guide you: {latest_instruction}"
@@ -343,13 +354,13 @@ class Pipe:
             )
 
         # Start identifying research goals according to the image description
-        await self.emit_event_safe("Creating a resesarch plan")
+        await self.emit_event_safe("Creating a resesarch plan...")
         identifier_goal = DEFAULT_ITEM_IDENTIFIER_GOAL
         if latest_instruction:
             identifier_goal += f"\n\nUse the following instruction from the user to further guide you: {latest_instruction}"
         if chat_history_text:
             identifier_goal += f"\n\nAlso use the previous chat history to further guide you: {chat_history_text}"
-        inputs = {"goal": identifier_goal, "image_description": image_descriptions}
+        inputs = {"goal": identifier_goal, "image_description": image_descriptions, "item_limit": max_research_categories}
         identifier_crew.kickoff(inputs)
 
         # Now that we've established our research targets, start a parallel async crew of researchers to tackle it
@@ -362,12 +373,16 @@ class Pipe:
                     "research_instructions": task.research_instructions,
                 }
             )
-        outputs = await research_crew.kickoff_for_each_async(tasks)
+        
+        if run_parallel_tasks:
+            outputs = await research_crew.kickoff_for_each_async(tasks)
+        else:
+            outputs = research_crew.kickoff_for_each(tasks)
 
         # Create the final report
-        await self.emit_event_safe("Summing up findings")
+        await self.emit_event_safe("Summing up findings...")
         final_output = llm.call(
             f"{{Thoroughly answer the user's question, providing links to all URLs and documents used in your response. You may only use the following information to answer the question. If no reference URLs exist, do not fabricate them. If the following information does not have all the information you need to answer all aspects of the user question, then you may highlight those aspects. User query: {DEFAULT_INSTRUCTION} \n\n Image description:  {image_descriptions} \n\n Gathered information: {outputs}}}"
         )
-
+        await self.emit_event_safe("(If results don't show soon, refresh)")
         return final_output
