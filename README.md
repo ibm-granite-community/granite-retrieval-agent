@@ -8,6 +8,7 @@ We’ve added a new example alongside the Granite Retrieval Agent: an **Image Re
 ## 📚 Table of Contents
 Here's the corrected table syntax:
 
+
 | Feature                | Description                                           | Models Used                            | Code Link                                                                            | Tutorial Link                                                                                   |
 |------------------------|-------------------------------------------------------|----------------------------------------|---------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
 | Granite Retrieval Agent| General Agentic RAG for document and web retrieval using Autogen/AG2 | Granite 3.2 Language, Granite 3.2 Vision | [granite_autogen_rag.py](./granite_autogen_rag.py)                                     | [Build a multi-agent RAG system with Granite locally](https://developer.ibm.com/tutorials/awb-build-agentic-rag-system-granite/)        |
@@ -43,9 +44,6 @@ The core agent code integrates with [Open WebUI Functions](https://docs.openwebu
 2. **Ollama** for LLM inference
 3. **Optional:** SearXNG or other search engines via Open WebUI search API
 4. **Python script** implementing an Agentic Workflow, wrapped into Open WebUI Function
-
-
----
 
 ## High-Level Architecture
 ![alt text](docs/images/high_level_arch.png)
@@ -147,7 +145,6 @@ Analyze this image and find related research articles about the devices shown.
 ```text
 Break down the image into components and provide a historical background for each object.
 ```
-
 ---
 
 # ⚠️ Important Note
@@ -156,3 +153,4 @@ As of **12/25/24**, Open WebUI 0.5 introduced significant performance improvemen
 ---
 
 With the addition of the Image Research Agent and the new flexible search API integration, the Granite Agent suite now supports both text and image-based research workflows. You can run one or both agents depending on your needs.
+
