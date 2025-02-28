@@ -90,7 +90,7 @@ ollama serve
 Pull the Granite Models
 Both agent use Granite Vision:
 ```bash
-ollama pull granite3.2-vision:8b
+ollama pull granite3.2-vision:2b
 ```
 
 The q8_0 quantization works superior for the Image Researcher

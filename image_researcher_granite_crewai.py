@@ -67,7 +67,7 @@ class Pipe:
     class Valves(BaseModel):
         TASK_MODEL_ID: str = Field(default="ollama/granite3.2:8b-instruct-q8_0")
         VISION_MODEL_ID: str = Field(
-            default="ollama/granite-vision3.2:2b"
+            default="ollama/granite3.2-vision:2b"
         )
         OPENAI_API_URL: str = Field(default="http://localhost:11434")
         OPENAI_API_KEY: str = Field(default="ollama")

@@ -118,7 +118,7 @@ CRITIC_PROMPT = """The previous instruction was {last_step} \nThe following is t
 class Pipe:
     class Valves(BaseModel):
         TASK_MODEL_ID: str = Field(default="granite3.2:8b")
-        VISION_MODEL_ID: str = Field(default="granite-vision3.2:2b")
+        VISION_MODEL_ID: str = Field(default="granite3.2-vision:2b")
         OPENAI_API_URL: str = Field(default="http://localhost:11434")
         OPENAI_API_KEY: str = Field(default="ollama")
         VISION_API_URL: str = Field(default="http://localhost:11434")
