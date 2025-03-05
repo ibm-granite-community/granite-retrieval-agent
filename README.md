@@ -134,6 +134,8 @@ Configuration details: [Open WebUI documentation](https://docs.openwebui.com/cat
 6. Save and enable the function.
 7. Adjust settings (inference endpoint, search API, model ID) via the gear icon.
 
+⚠️ If you are receiving open telemetry related errors while importing the `image_researcher_granite_crewai.py` script, see [this issue](https://github.com/ibm-granite-community/granite-retrieval-agent/issues/25).
+
 
 ## **5. Load Documents into Open WebUI**
 
