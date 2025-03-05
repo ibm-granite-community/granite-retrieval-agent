@@ -1,5 +1,5 @@
 """
-requirements: crewai==0.102.0, crewai-tools==0.33.0
+requirements: crewai==0.102.0, crewai-tools==0.33.0, ollama
 """
 
 import logging
@@ -8,6 +8,7 @@ from typing import Optional, Callable, Awaitable, List
 from crewai import Crew, Process, Agent, Task, LLM
 from crewai.tools import tool
 from fastapi import Request
+from ollama import Client as OllamaClient
 from open_webui.routers import retrieval
 from open_webui.models.knowledge import KnowledgeTable
 from open_webui import config as open_webui_config
@@ -69,9 +70,9 @@ class Pipe:
         VISION_MODEL_ID: str = Field(
             default="ollama/granite3.2-vision:2b"
         )
-        OPENAI_API_URL: str = Field(default="http://localhost:11434")
+        OPENAI_API_URL: str = Field(default=open_webui_config.OLLAMA_BASE_URL or "http://localhost:11434")
         OPENAI_API_KEY: str = Field(default="ollama")
-        VISION_API_URL: str = Field(default="http://localhost:11434")
+        VISION_API_URL: str = Field(default=open_webui_config.OLLAMA_BASE_URL or "http://localhost:11434")
         MODEL_TEMPERATURE: float = Field(default=0)
         MAX_RESEARCH_CATEGORIES: int = Field(default=4)
         MAX_RESEARCH_ITERATIONS: int = Field(default=6)
@@ -172,11 +173,6 @@ class Pipe:
             base_url=base_url,
             api_key=api_key,
             temperature=model_temp,
-        )
-
-        vision_llm = LLM(
-            model=vision_model,
-            base_url=vision_url,
         )
 
         ##################
@@ -331,7 +327,7 @@ class Pipe:
                     chat_history_text += identified_content["text"]
 
         # For every image, whether in the latest instruction or the chat history, generate a description
-        image_descriptions = []
+        image_urls = []
         for i in range(len(image_info)):
             await self.emit_event_safe(message="Analyzing image...")
             image_query = DEAULT_IMAGE_VERBALIZER_PROMPT
@@ -339,19 +335,37 @@ class Pipe:
                 image_query += f"\n\nUse the following instruction from the user to further guide you: {latest_instruction}"
             if chat_history_text:
                 image_query += f"\n\nAlso use the previous chat history to further guide you: {chat_history_text}"
-            messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": image_query},
-                        image_info[i],
-                    ],
-                }
-            ]
-            image_description = vision_llm.call(messages)
-            image_descriptions.append(
-                f"Accompanying image description: {image_description}"
-            )
+
+            # When the image URL comes in from Open WebUI, the image name is prefixed with data:image/png;base64,
+            # However, Ollama does not accept this prefix. Trimming this beginning bit before sending to Ollama
+            base64_image = image_info[i]['image_url']['url']
+            index_of_comma = base64_image.find(",")
+            if index_of_comma >=0:
+                base64_image = base64_image[index_of_comma + 1:]
+            image_urls.append(base64_image)
+
+        messages = [
+            {
+                "role": "user",
+                "content": image_query,
+                "images": image_urls
+            }
+        ]
+
+        # Here we are going to use the ollama client directly to describe the image
+        # For some reason, the LiteLLM client inside CrewAI was not properly forwarding the image over to Ollama
+        # Contributions welcome if you can fix this and make it backend provider agnostic :-)
+        index_of_slash = vision_model.find("/")
+        ollama_vision_model = vision_model
+        if index_of_slash >=0:
+            ollama_vision_model = vision_model[index_of_slash + 1:]
+        ollama_client = OllamaClient(
+            host=vision_url,
+        )
+        image_descriptions = ollama_client.chat(
+            model=ollama_vision_model,
+            messages = messages,
+        )['message']['content']
 
         # Start identifying research goals according to the image description
         await self.emit_event_safe("Creating a resesarch plan...")
