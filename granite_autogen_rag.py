@@ -342,7 +342,7 @@ class Pipe:
 
             result = retrieval.search_web(
                 self.owui_request,
-                self.owui_request.app.state.config.RAG_WEB_SEARCH_ENGINE,
+                self.owui_request.app.state.config.WEB_SEARCH_ENGINE,
                 search_instruction,
             )
             return str(result)

@@ -195,7 +195,7 @@ class Pipe:
             """
             result = retrieval.search_web(
                 self.owui_request,
-                self.owui_request.app.state.config.RAG_WEB_SEARCH_ENGINE,
+                self.owui_request.app.state.config.WEB_SEARCH_ENGINE,
                 search_instructions,
             )
             return str(result)
@@ -388,10 +388,14 @@ class Pipe:
                 }
             )
         
-        if run_parallel_tasks:
-            outputs = await research_crew.kickoff_for_each_async(tasks)
-        else:
-            outputs = research_crew.kickoff_for_each(tasks)
+        try:
+            if run_parallel_tasks:
+                outputs = await research_crew.kickoff_for_each_async(tasks)
+            else:
+                outputs = research_crew.kickoff_for_each(tasks)
+        except Exception as e:
+            logging.error(f"Error in research crew: {e}")
+            outputs = resarch_task.output.raw
 
         # Create the final report
         await self.emit_event_safe("Summing up findings...")
