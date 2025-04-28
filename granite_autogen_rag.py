@@ -421,7 +421,7 @@ class Pipe:
                     ],
                 }
             ]
-            image_description = vision_assistant.generate_reply(messages=messages)
+            image_description = await vision_assistant.a_generate_reply(messages=messages)
             image_descriptions.append(
                 f"Accompanying image description: {image_description['content']}"
             )
@@ -432,9 +432,10 @@ class Pipe:
         # Create the plan, using structured outputs
         await self.emit_event_safe(message="Creating a plan...")
         try:
-            planner_output = user_proxy.initiate_chat(
+            planner_output = await user_proxy.a_initiate_chat(
                 message=plan_instruction, max_turns=1, recipient=planner
-            ).chat_history[-1]["content"]
+            )
+            planner_output = planner_output.chat_history[-1]["content"]
             plan_dict = json.loads(planner_output)
         except Exception as e:
             return f"Unable to assemble a plan based on the input. Please try re-formulating your query! Error: \n\n{e}"
@@ -455,7 +456,7 @@ class Pipe:
                 await self.emit_event_safe(message="Planning the next step...")
                 reflection_message = last_step
                 # Ask the critic if the previous step was properly accomplished
-                was_job_accomplished = user_proxy.initiate_chat(
+                output = await user_proxy.a_initiate_chat(
                     recipient=generic_assistant,
                     max_turns=1,
                     message=CRITIC_PROMPT.format(
@@ -463,7 +464,9 @@ class Pipe:
                         context=answer_output,
                         last_output=last_output,
                     ),
-                ).chat_history[-1]["content"]
+                )
+                
+                was_job_accomplished = output.chat_history[-1]["content"]
                 # If it was not accomplished, make sure an explanation is provided for the reflection assistant
                 if "##NO##" in was_job_accomplished:
                     reflection_message = f"The previous step was {last_step} but it was not accomplished satisfactorily due to the following reason: \n {was_job_accomplished}."
@@ -480,11 +483,12 @@ class Pipe:
                     "Information Gathered": answer_output,
                 }
 
-                was_goal_accomplished = user_proxy.initiate_chat(
+                output = await user_proxy.a_initiate_chat(
                     recipient=goal_judge,
                     max_turns=1,
                     message=f"(```{str(goal_message)}```",
-                ).chat_history[-1]["content"]
+                )
+                was_goal_accomplished = output.chat_history[-1]["content"]
                 if not "##NOT YET##" in was_goal_accomplished:
                     break
 
@@ -497,11 +501,12 @@ class Pipe:
                     "Last Step Output": str(last_output),
                     "Steps Taken": str(steps_taken),
                 }
-                instruction = user_proxy.initiate_chat(
+                output = await user_proxy.a_initiate_chat(
                     recipient=reflection_assistant,
                     max_turns=1,
                     message=f"(```{str(message)}```",
-                ).chat_history[-1]["content"]
+                )
+                instruction = output.chat_history[-1]["content"]
 
                 if "##TERMINATE##" in instruction:
                     # A termination message means there are no more steps to take. Exit the loop.
@@ -512,7 +517,7 @@ class Pipe:
             prompt = instruction
             if answer_output:
                 prompt += f"\n Contextual Information: \n{answer_output}"
-            output = user_proxy.initiate_chat(
+            output = await user_proxy.a_initiate_chat(
                 recipient=assistant, max_turns=3, message=prompt
             )
 
@@ -529,8 +534,8 @@ class Pipe:
         await self.emit_event_safe(message="Summing up findings...")
         # Now that we've gathered all the information we need, we will summarize it to directly answer the original prompt
         final_prompt = f"Answer the user's query: {plan_instruction}. Use the following information only. Do NOT supplement with your own knowledge: {answer_output}"
-        final_output = user_proxy.initiate_chat(
+        final_output = await user_proxy.a_initiate_chat(
             message=final_prompt, max_turns=1, recipient=generic_assistant
-        ).chat_history[-1]["content"]
+        )
 
-        return final_output
+        return final_output.chat_history[-1]["content"]

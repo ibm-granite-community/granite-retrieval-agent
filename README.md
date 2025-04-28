@@ -212,12 +212,7 @@ What companies are prominent adopters of the open-source technologies my team is
 Study my meeting notes to figure out the capabilities of the projects I’m involved in. Then, find me other open-source projects with similar features.
 ```
 
----
 
-# ⚠️ Important Notes
-
-- **Open WebUI 0.5 (Released 12/25/24) introduced performance improvements.**
-- Some users report occasional issues where chat results **don’t appear until refreshing the browser**.
 
 
 
