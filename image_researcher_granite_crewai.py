@@ -1,14 +1,16 @@
 """
-requirements: crewai==0.102.0, crewai-tools==0.33.0, ollama
+requirements: crewai==0.117.0, crewai-tools==0.33.0, ollama
 """
-
+import anyio
+import asyncio
 import logging
 from typing import Optional, Callable, Awaitable, List
 
 from crewai import Crew, Process, Agent, Task, LLM
+from crewai.tasks.task_output import TaskOutput
 from crewai.tools import tool
 from fastapi import Request
-from ollama import Client as OllamaClient
+from ollama import AsyncClient as OllamaClient
 from open_webui.routers import retrieval
 from open_webui.models.knowledge import KnowledgeTable
 from open_webui import config as open_webui_config
@@ -62,7 +64,6 @@ ASSISTANT_PROMPT = """
     Never answer the instruction using links to URLs that were not discovered during the use of your search tools. Only respond with document links and URLs that your tools returned to you.
     Also make sure to provide the URL for the page you are using as your source or the document name.
     """
-
 
 class Pipe:
     class Valves(BaseModel):
@@ -134,6 +135,15 @@ class Pipe:
             await self.event_emitter(event_data)
         except Exception as e:
             logging.error(f"Error emitting event: {e}")
+    
+    def log_task_completion(self, output: TaskOutput):
+        asyncio.run(self.emit_event_safe(f"Completed Task: {output.summary}"))
+
+    def log_research_items(self, output: TaskOutput):
+        items = []
+        for i in output.pydantic.items:
+            items.append(i.item_name)
+        asyncio.run(self.emit_event_safe(f"Research Items Identified: {items}"))
 
     async def pipe(
         self,
@@ -249,6 +259,7 @@ class Pipe:
             agent=item_identifier,
             expected_output="A list of items and concepts that need to be researched in order to accomplish the goal.",
             output_pydantic=ResearchItems,
+            callback=self.log_research_items
         )
         identifier_crew = Crew(
             agents=[item_identifier],
@@ -275,6 +286,7 @@ class Pipe:
             description="Fulfill the instruction given. {item_name} {research_instructions}",  # Keep in mind the previously gathered data from previous steps: {previously_executed_steps}',
             agent=researcher,
             expected_output="Information that directly answers the instruction given. If your answer references websites or documents, provide in-line citations in the form of hyperlinks for every reference.",
+            callback=self.log_task_completion
         )
         research_crew = Crew(
             agents=[researcher],
@@ -328,6 +340,7 @@ class Pipe:
 
         # For every image, whether in the latest instruction or the chat history, generate a description
         image_urls = []
+        image_query = ""
         for i in range(len(image_info)):
             await self.emit_event_safe(message="Analyzing image...")
             image_query = DEAULT_IMAGE_VERBALIZER_PROMPT
@@ -362,10 +375,11 @@ class Pipe:
         ollama_client = OllamaClient(
             host=vision_url,
         )
-        image_descriptions = ollama_client.chat(
+        ollama_output = await ollama_client.chat(
             model=ollama_vision_model,
             messages = messages,
-        )['message']['content']
+        )
+        image_descriptions = ollama_output['message']['content']
 
         # Start identifying research goals according to the image description
         await self.emit_event_safe("Creating a resesarch plan...")
@@ -375,7 +389,7 @@ class Pipe:
         if chat_history_text:
             identifier_goal += f"\n\nAlso use the previous chat history to further guide you: {chat_history_text}"
         inputs = {"goal": identifier_goal, "image_description": image_descriptions, "item_limit": max_research_categories}
-        identifier_crew.kickoff(inputs)
+        await identifier_crew.kickoff_async(inputs)
 
         # Now that we've established our research targets, start a parallel async crew of researchers to tackle it
         await self.emit_event_safe("Researching items...")
@@ -392,15 +406,16 @@ class Pipe:
             if run_parallel_tasks:
                 outputs = await research_crew.kickoff_for_each_async(tasks)
             else:
-                outputs = research_crew.kickoff_for_each(tasks)
+                outputs = await anyio.to_thread.run_sync(lambda: research_crew.kickoff_for_each(tasks))
         except Exception as e:
             logging.error(f"Error in research crew: {e}")
             outputs = resarch_task.output.raw
 
         # Create the final report
         await self.emit_event_safe("Summing up findings...")
-        final_output = llm.call(
-            f"{{Thoroughly answer the user's question, providing links to all URLs and documents used in your response. You may only use the following information to answer the question. If no reference URLs exist, do not fabricate them. If the following information does not have all the information you need to answer all aspects of the user question, then you may highlight those aspects. User query: {DEFAULT_INSTRUCTION} \n\n Image description:  {image_descriptions} \n\n Gathered information: {outputs}}}"
-        )
+        prompt = f"""Thoroughly answer the user's question, providing links to all URLs and documents used in your response. You may only use the following information to answer the question. 
+        If no reference URLs exist, do not fabricate them. If the following information does not have all the information you need to answer all aspects of the user question, then you may highlight those aspects. 
+        User query: {DEFAULT_INSTRUCTION} \n\n Image description:  {image_descriptions} \n\n Gathered information: {outputs}"""
+        final_output =  await anyio.to_thread.run_sync(lambda: llm.call(prompt))
         await self.emit_event_safe("(If results don't show soon, refresh)")
         return final_output
